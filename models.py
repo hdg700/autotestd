@@ -7,6 +7,8 @@ Autotestd models definition module
 __author__ = 'Danilenko Alexander'
 __email__ = 'hdg700@gmail.com'
 
+import re
+import os
 from sqlalchemy import *
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relation
@@ -15,27 +17,9 @@ from sqlalchemy.orm.exc import *
 
 
 engine = create_engine('sqlite:///autotestd.db')
+engine.echo = True
 Session = scoped_session(sessionmaker(bind=engine))
 Base = declarative_base(bind=engine)
-
-
-class ADProject(Base):
-    """Autotest daemon project model"""
-    __tablename__ = 'ad_project'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(Unicode(50), unique=True, nullable=False)
-    code_dir = Column(Unicode(200), nullable=False)
-    test_dir = Column(Unicode(200), nullable=False)
-
-    def __init__(self, name, code_dir, test_dir):
-        """Autotest daemon project class initialization"""
-        self.name = name
-        self.code_dir = code_dir
-        self.test_dir = test_dir
-
-    def __repr__(self):
-        return u'<ADProject: {0}>'.format(self.name)
 
 
 class ADCode(Base):
@@ -72,5 +56,60 @@ class ADTest(Base):
         self.project = project
         self.classname = classname
         self.filename = filename
+
+
+class ADProject(Base):
+    """Autotest daemon project model"""
+    __tablename__ = 'ad_project'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(Unicode(50), unique=True, nullable=False)
+    code_dir = Column(Unicode(200), nullable=False)
+    test_dir = Column(Unicode(200), nullable=False)
+
+    def __init__(self, name, code_dir, test_dir):
+        """Autotest daemon project class initialization"""
+        self.name = name
+        self.code_dir = code_dir
+        self.test_dir = test_dir
+
+        self.search_code()
+        self.search_tests()
+
+    def __repr__(self):
+        return u'<ADProject: {0}>'.format(self.name)
+
+    def find_classes(self, curdir, regexp):
+        """Recursive search for class-files
+        regexp - class definition line regular expression:
+            re.compile(r'class ([A-Za-z]+)')
+        """
+        classes = []
+        for f in os.listdir(curdir):
+            f = os.path.join(curdir, f)
+            if os.path.isdir(f):
+                classes.extend(self.find_classes(f, regexp))
+            else:
+                for line in open(f).xreadlines():
+                    m = regexp.match(line)
+                    if m:
+                        classes.append((f, m.group(1)))
+                        break
+        return classes
+
+    def search_code(self):
+        """Search all code-files starting from search_dir"""
+        session = Session()
+        regexp = re.compile(r'class (\w+)\b')
+        for f, c in self.find_classes(self.code_dir, regexp):
+            session.add(ADCode(self, c, f))
+
+    def search_tests(self):
+        """Search all tests-files starting from search_dir"""
+        session = Session()
+        regexp = re.compile(r'class (\w+)Test\b')
+        for f, c in self.find_classes(self.test_dir, regexp):
+            session.add(ADTest(self, c, f))
+
 
 Base.metadata.create_all()
