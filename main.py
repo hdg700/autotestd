@@ -10,6 +10,10 @@ Usage: autotestd [key]
 -h, --help      show this message
 """
 
+__author__ = 'Danilenko Alexander'
+__email__ = 'hdg700@gmail.com'
+
+
 import sys
 import getopt
 
@@ -41,6 +45,8 @@ def main(argv=None):
         else:
             print e.msg
             print 'Use --help for more information'
+
+    # run daemon here!!!
 
 
 if __name__ == '__main__':
