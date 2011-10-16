@@ -72,3 +72,5 @@ class ADTest(Base):
         self.project = project
         self.classname = classname
         self.filename = filename
+
+Base.metadata.create_all()
