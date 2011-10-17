@@ -14,45 +14,29 @@ mask = pyinotify.IN_MODIFY
 
 prjs = {}
 
+# по идее, не надо разделять дескрипторы на тесты и код:
+# всегда сразу искать тест по имени класса и пытаться его запустить
+
+# либо отдельные обработчики для кода и тестов!!!
 class PTmp(ProcessEvent):
     def process_IN_MODIFY(self, event):
         class FoundException(Exception):
             def __init__(self, project):
                 self.project = project
 
-        class FoundCodeException(FoundException):
-            pass
-
-        class FoundTestException(FoundException):
-            pass
-
         try:
             for p, wdct in prjs.items():
-                if event.wd in wdct[0]:
-                    raise(FoundCodeException(p))
-                elif event.wd in wdct[1]:
-                    raise(FoundTestException(p))
+                if event.wd in wdct:
+                    raise(FoundException(p))
 
-        except FoundCodeException as e:
+        except FoundException as e:
             print 'Found code:', e.project, ' -> ', event.pathname
-        except FoundTestException as e:
-            print 'Found test:', e.project, ' -> ', event.pathname
-        else:
-            print 'Not found'
-        #print [v for v,k in wdc.items() if event.wd == k], event.name
-        #print [v for v,k in wdt.items() if event.wd == k], event.name
 
 notifier = Notifier(wm, PTmp())
 
-#wdc = wm.add_watch('./application/modules', mask, rec=True)
-#wdt = wm.add_watch('./tests', mask, rec=True)
-#prjs['spravka'] = (wm.add_watch('./application/modules', mask, rec=True), wm.add_watch('./tests', mask, rec=True))
-prjs['spravka'] = ([], [])
-prjs['spravka'][0].extend(wm.add_watch('./application/modules', mask, rec=True).values())
-prjs['spravka'][1].extend(wm.add_watch('./tests', mask, rec=True).values())
-
-#print wdc.values()
-#print wdt.values()
+prjs['spravka'] = []
+prjs['spravka'].extend(wm.add_watch('./application/modules', mask, rec=True).values())
+prjs['spravka'].extend(wm.add_watch('./tests', mask, rec=True).values())
 
 while True:
     try:
