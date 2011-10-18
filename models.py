@@ -17,7 +17,7 @@ from sqlalchemy.orm.exc import *
 
 
 engine = create_engine('sqlite:///autotestd.db')
-engine.echo = True
+#engine.echo = True
 Session = scoped_session(sessionmaker(bind=engine))
 Base = declarative_base(bind=engine)
 
@@ -66,12 +66,14 @@ class ADProject(Base):
     name = Column(Unicode(50), unique=True, nullable=False)
     code_dir = Column(Unicode(200), nullable=False)
     test_dir = Column(Unicode(200), nullable=False)
+    active = Column(Boolean)
 
     def __init__(self, name, code_dir, test_dir):
         """Autotest daemon project class initialization"""
         self.name = name
         self.code_dir = code_dir
         self.test_dir = test_dir
+        self.active = True
 
         self.search_code()
         self.search_tests()
@@ -110,6 +112,16 @@ class ADProject(Base):
         regexp = re.compile(r'class (\w+)Test\b')
         for f, c in self.find_classes(self.test_dir, regexp):
             session.add(ADTest(self, c, f))
+
+    # Database queries methods
+    @staticmethod
+    def get_all():
+        session = Session()
+        try:
+            return session.query(ADProject)\
+                    .filter(ADProject.active == True).all()
+        except NoResultFound:
+            return False
 
 
 Base.metadata.create_all()
