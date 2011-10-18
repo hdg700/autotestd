@@ -31,8 +31,15 @@ class ADProcessEvent(pyinotify.ProcessEvent):
                 if event.wd in wdct:
                     raise(FoundException(p))
         except FoundException as e:
-            print 'Found project: ', e.project
+            self.run_test(e.project, event.pathname)
 
+    def run_test(self, project, filename):
+        """Runs test for speciefed class from project"""
+        test = project.get_test_for_code(filename)
+        if not test:
+            return False
+
+        print test.run()
 
 class AutotestDaemon(object):
     """

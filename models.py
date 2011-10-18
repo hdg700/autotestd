@@ -7,6 +7,7 @@ Autotestd models definition module
 __author__ = 'Danilenko Alexander'
 __email__ = 'hdg700@gmail.com'
 
+import commands
 import re
 import os
 from sqlalchemy import *
@@ -17,7 +18,7 @@ from sqlalchemy.orm.exc import *
 
 
 engine = create_engine('sqlite:///autotestd.db')
-#engine.echo = True
+engine.echo = True
 Session = scoped_session(sessionmaker(bind=engine))
 Base = declarative_base(bind=engine)
 
@@ -56,6 +57,13 @@ class ADTest(Base):
         self.project = project
         self.classname = classname
         self.filename = filename
+
+    def __repr__(self):
+        return u'<ADTest ({0})'.format(self.classname)
+
+    def run(self):
+        """Run self test file"""
+        return commands.getoutput('phpunit {0}'.format(self.filename))
 
 
 class ADProject(Base):
@@ -112,6 +120,17 @@ class ADProject(Base):
         regexp = re.compile(r'class (\w+)Test\b')
         for f, c in self.find_classes(self.test_dir, regexp):
             session.add(ADTest(self, c, f))
+
+    def get_test_for_code(self, filename):
+        """Return test for speciefed code/test filename"""
+        print filename
+        session = Session()
+        try:
+            return session.query(ADTest)\
+                    .join((ADCode, ADCode.classname == ADTest.classname))\
+                    .filter(or_(ADCode.filename == filename, ADTest.filename == filename)).first()
+        except NoResultFound:
+            return False
 
     # Database queries methods
     @staticmethod
