@@ -8,9 +8,10 @@ __author__ = 'Danilenko Alexander'
 __email__ = 'hdg700@gmail.com'
 
 
-from models import *
 import sqlalchemy.orm.exc
 import pyinotify
+import pynotify
+from models import *
 
 
 class ADProcessEvent(pyinotify.ProcessEvent):
@@ -39,7 +40,12 @@ class ADProcessEvent(pyinotify.ProcessEvent):
         if not test:
             return False
 
-        print test.run()
+        test_status = test.get_status()
+        if pynotify.init('AutotestDaemon'):
+            if test_status == 0:
+                pynotify.Notification('Test \"{0}\"'.format(test.classname), 'Success!', 'face-smile').show()
+            else:
+                pynotify.Notification('Test \"{0}\"'.format(test.classname), 'An error ocured...', 'face-sad').show()
 
 class AutotestDaemon(object):
     """

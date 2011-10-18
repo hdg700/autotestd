@@ -18,7 +18,7 @@ from sqlalchemy.orm.exc import *
 
 
 engine = create_engine('sqlite:///autotestd.db')
-engine.echo = True
+#engine.echo = True
 Session = scoped_session(sessionmaker(bind=engine))
 Base = declarative_base(bind=engine)
 
@@ -61,9 +61,9 @@ class ADTest(Base):
     def __repr__(self):
         return u'<ADTest ({0})'.format(self.classname)
 
-    def run(self):
+    def get_status(self):
         """Run self test file"""
-        return commands.getoutput('phpunit {0}'.format(self.filename))
+        return commands.getstatusoutput('phpunit {0}'.format(self.filename))[0]
 
 
 class ADProject(Base):
@@ -123,7 +123,6 @@ class ADProject(Base):
 
     def get_test_for_code(self, filename):
         """Return test for speciefed code/test filename"""
-        print filename
         session = Session()
         try:
             return session.query(ADTest)\
