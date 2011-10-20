@@ -127,7 +127,7 @@ class ADProject(Base):
         try:
             return session.query(ADTest)\
                     .join((ADCode, ADCode.classname == ADTest.classname))\
-                    .filter(or_(ADCode.filename == filename, ADTest.filename == filename)).first()
+                    .filter(or_(ADCode.filename == unicode(filename), ADTest.filename == unicode(filename))).first()
         except NoResultFound:
             return False
 
