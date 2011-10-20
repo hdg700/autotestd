@@ -64,7 +64,7 @@ class AutotestDaemon(dbus.service.Object):
     def __init__(self):
         """Init dbus listener, inotifier, projects"""
         bus_name = dbus.service.BusName('hdg700.autotestd', bus=dbus.SessionBus())
-        dbus.service.Object.__init__(self, bus_name, '/hdg700/autotestd')
+        dbus.service.Object.__init__(self, bus_name, '/hdg700/autotestd/AutotestDaemon')
 
         self.watch_manager = pyinotify.WatchManager()
         self.watch_mask = pyinotify.IN_MODIFY
@@ -74,8 +74,9 @@ class AutotestDaemon(dbus.service.Object):
         self.init_notifier_from_db()
         self.notifier.start()
 
-    @dbus.service.method('hdg700.autotestd')
-    def dbus_hello(self):
+    @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client', in_signature='s')
+    def dbus_hello(self, s):
+        print s
         return [repr(i) for i in self.notify_process.projects.keys()]
 
     def watch_project(self, project):
