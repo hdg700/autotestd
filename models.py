@@ -37,8 +37,8 @@ class ADCode(Base):
     def __init__(self, project, classname, filename):
         """Autotest daemon code model class initialization"""
         self.project = project
-        self.classname = classname
-        self.filename = filename
+        self.classname = unicode(classname)
+        self.filename = unicode(filename)
 
 
 class ADTest(Base):
@@ -55,8 +55,8 @@ class ADTest(Base):
     def __init__(self, project, classname, filename):
         """Autotest daemon test model class initialization"""
         self.project = project
-        self.classname = classname
-        self.filename = filename
+        self.classname = unicode(classname)
+        self.filename = unicode(filename)
 
     def __repr__(self):
         return u'<ADTest ({0})'.format(self.classname)
@@ -78,10 +78,9 @@ class ADProject(Base):
 
     def __init__(self, name, code_dir, test_dir):
         """Autotest daemon project class initialization"""
-        self.name = name
-        self.code_dir = code_dir
-        self.test_dir = test_dir
-        self.active = True
+        self.name = unicode(name)
+        self.code_dir = unicode(code_dir)
+        self.test_dir = unicode(test_dir)
 
         self.search_code()
         self.search_tests()
@@ -136,8 +135,7 @@ class ADProject(Base):
     def get_all():
         session = Session()
         try:
-            return session.query(ADProject)\
-                    .filter(ADProject.active == True).all()
+            return session.query(ADProject).all()
         except NoResultFound:
             return False
 

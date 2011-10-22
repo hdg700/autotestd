@@ -20,8 +20,16 @@ from dbus.mainloop.glib import DBusGMainLoop
 
 from models import *
 
+
 # Inits gtk threads to use inotify and dbus together
 gobject.threads_init()
+
+
+class FoundException(Exception):
+    """Raised to stop searching loop"""
+    def __init__(self, project):
+        self.project = project
+
 
 class ADProcessEvent(pyinotify.ProcessEvent):
     """
@@ -31,17 +39,24 @@ class ADProcessEvent(pyinotify.ProcessEvent):
         self.projects = {}
 
     def process_IN_MODIFY(self, event):
-        class FoundException(Exception):
-            """Raised to stop searching loop"""
-            def __init__(self, project):
-                self.project = project
-
+        print event
         try:
             for p, wdct in self.projects.items():
                 if event.wd in wdct:
                     raise(FoundException(p))
         except FoundException as e:
             self.run_test(e.project, event.pathname)
+
+    def get_project_by_name(self, name):
+        """Returns project with specified name"""
+        try:
+            for p, wdct in self.projects.items():
+                if p.name == name:
+                    raise(FoundException(p))
+        except FoundException as e:
+            return p, wdct
+
+        return False
 
     def run_test(self, project, filename):
         """Runs test for speciefed class from project"""
@@ -55,6 +70,7 @@ class ADProcessEvent(pyinotify.ProcessEvent):
                 pynotify.Notification('Test  \"{0}\"'.format(test.classname), 'Success!', 'face-smile').show()
             else:
                 pynotify.Notification('Test  \"{0}\"'.format(test.classname), 'An error ocured...', 'face-sad').show()
+
 
 class AutotestDaemon(dbus.service.Object):
     """
@@ -84,8 +100,8 @@ class AutotestDaemon(dbus.service.Object):
             in_signature='sss')
     def dbus_add(self, project, code_dir, tests_dir):
         """Add method called via dbus"""
-        print project, code_dir, tests_dir
-        return 'ok'
+        if self.new_project(project, code_dir, tests_dir):
+            return 'New project accepted'
 
     @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client',
             in_signature='sss')
@@ -98,8 +114,14 @@ class AutotestDaemon(dbus.service.Object):
             in_signature='s')
     def dbus_delete(self, project):
         """Delete method called via dbus"""
-        print project
-        return 'ok'
+        res = self.notify_process.get_project_by_name(project)
+        if not res:
+            return 'No such project!'
+
+        if self.delete_project(*res):
+            return 'Project deleted'
+        else:
+            return False
 
     @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client',
             in_signature='s')
@@ -110,8 +132,10 @@ class AutotestDaemon(dbus.service.Object):
     @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client')
     def dbus_list(self):
         """List method called via dbus"""
-        print project
-        return 'ok'
+        l = [(i.name, i.code_dir, i.test_dir) for i in self.notify_process.projects.keys()]
+        if not l:
+            return False
+        return l
 
     def watch_project(self, project):
         """Add project to notify watcher"""
@@ -136,17 +160,42 @@ class AutotestDaemon(dbus.service.Object):
         for p in projects:
             self.watch_project(p)
 
+    def delete_project(self, project, wdct):
+        """Deletes project, remove wdct from inotify wather"""
+        res = self.watch_manager.rm_watch(wdct)
+        if not all(res.values()):
+            return False
+
+        del self.notify_process.projects[project]
+        session = Session()
+        session.query(ADCode).filter(ADCode.project == project).delete()
+        session.query(ADTest).filter(ADTest.project == project).delete()
+        session.delete(project)
+        session.commit()
+
+        if pynotify.init('AutotestDaemon'):
+            pynotify.Notification('Project deleted  \"{0}\"'.format(project.name), 'Success!', 'face-smile').show()
+
+        return True
+
     def new_project(self, project_name, code_dir, tests_dir):
         """Add new project"""
+        session = Session()
         try:
-            session = Session()
             p = ADProject(project_name, code_dir, tests_dir)
             session.add(p)
             session.commit()
 
             self.watch_project(p)
+
+            if pynotify.init('AutotestDaemon'):
+                pynotify.Notification('New project  \"{0}\"'.format(project_name), 'Success!', 'face-smile').show()
+
+            return p
+
         except sqlalchemy.exc.IntegrityError:
-            pass
+            session.rollback()
+            return False
 
     def notify_loop(self):
         while True:
