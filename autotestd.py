@@ -74,10 +74,44 @@ class AutotestDaemon(dbus.service.Object):
         self.init_notifier_from_db()
         self.notifier.start()
 
-    @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client', in_signature='s')
+    @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client',
+            in_signature='s')
     def dbus_hello(self, s):
         print s
         return [repr(i) for i in self.notify_process.projects.keys()]
+
+    @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client',
+            in_signature='sss')
+    def dbus_add(self, project, code_dir, tests_dir):
+        """Add method called via dbus"""
+        print project, code_dir, tests_dir
+        return 'ok'
+
+    @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client',
+            in_signature='sss')
+    def dbus_edit(self, project, code_dir, tests_dir):
+        """Edit method called via dbus"""
+        print project, code_dir, tests_dir
+        return 'ok'
+
+    @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client',
+            in_signature='s')
+    def dbus_delete(self, project):
+        """Delete method called via dbus"""
+        print project
+        return 'ok'
+
+    @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client',
+            in_signature='s')
+    def dbus_info(self, project):
+        """Info method called via dbus"""
+        return 'ok'
+
+    @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client')
+    def dbus_list(self):
+        """List method called via dbus"""
+        print project
+        return 'ok'
 
     def watch_project(self, project):
         """Add project to notify watcher"""

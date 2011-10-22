@@ -24,6 +24,7 @@ class UsageError(Exception):
         self.msg = msg
         self.help_only = help_only
 
+
 def main(argv=None):
     if not argv:
         argv = sys.argv[1:]
