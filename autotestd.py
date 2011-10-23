@@ -32,14 +32,11 @@ class FoundException(Exception):
 
 
 class ADProcessEvent(pyinotify.ProcessEvent):
-    """
-    Inotify process event class
-    """
+    """Inotify process event class"""
     def __init__(self):
         self.projects = {}
 
     def process_IN_MODIFY(self, event):
-        print event
         try:
             for p, wdct in self.projects.items():
                 if event.wd in wdct:
@@ -102,7 +99,7 @@ class AutotestDaemon(dbus.service.Object):
         """Add method called via dbus"""
         if self.new_project(project, code_dir, tests_dir):
             if pynotify.init('AutotestDaemon'):
-                pynotify.Notification('New project  \"{0}\"'.format(project_name), 'Success!', 'face-smile').show()
+                pynotify.Notification('New project  \"{0}\"'.format(project), 'Success!', 'face-smile').show()
             return 'New project accepted'
         return False
 
@@ -134,7 +131,7 @@ class AutotestDaemon(dbus.service.Object):
 
         if self.delete_project(*res):
             if pynotify.init('AutotestDaemon'):
-                pynotify.Notification('Project deleted  \"{0}\"'.format(project.name), 'Success!', 'face-smile').show()
+                pynotify.Notification('Project deleted  \"{0}\"'.format(project), 'Success!', 'face-smile').show()
             return 'Project deleted'
         else:
             return False
