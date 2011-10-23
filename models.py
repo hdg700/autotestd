@@ -130,6 +130,22 @@ class ADProject(Base):
         except NoResultFound:
             return False
 
+    def code_count(self):
+        """Returns code classes count"""
+        session = Session()
+        try:
+            return session.query(func.count(ADCode.id)).filter(ADCode.project == self).first()[0]
+        except NoResultFound:
+            return 0
+
+    def test_count(self):
+        """Returns test classes count"""
+        session = Session()
+        try:
+            return session.query(func.count(ADTest.id)).filter(ADTest.project == self).first()[0]
+        except NoResultFound:
+            return 0
+
     # Database queries methods
     @staticmethod
     def get_all():

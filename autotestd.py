@@ -101,14 +101,28 @@ class AutotestDaemon(dbus.service.Object):
     def dbus_add(self, project, code_dir, tests_dir):
         """Add method called via dbus"""
         if self.new_project(project, code_dir, tests_dir):
+            if pynotify.init('AutotestDaemon'):
+                pynotify.Notification('New project  \"{0}\"'.format(project_name), 'Success!', 'face-smile').show()
             return 'New project accepted'
+        return False
 
     @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client',
-            in_signature='sss')
-    def dbus_edit(self, project, code_dir, tests_dir):
+            in_signature='ssss')
+    def dbus_edit(self, project, name, code_dir, tests_dir):
         """Edit method called via dbus"""
-        print project, code_dir, tests_dir
-        return 'ok'
+        res = self.notify_process.get_project_by_name(project)
+        if not res:
+            return 'No such project!'
+
+        if self.delete_project(*res):
+            if self.new_project(name, code_dir, tests_dir):
+                if pynotify.init('AutotestDaemon'):
+                    pynotify.Notification('Project edited  \"{0}\"'.format(name), 'Success!', 'face-smile').show()
+                return 'Project edited'
+            else:
+                return 'Project deleted'
+
+        return False
 
     @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client',
             in_signature='s')
@@ -119,6 +133,8 @@ class AutotestDaemon(dbus.service.Object):
             return 'No such project!'
 
         if self.delete_project(*res):
+            if pynotify.init('AutotestDaemon'):
+                pynotify.Notification('Project deleted  \"{0}\"'.format(project.name), 'Success!', 'face-smile').show()
             return 'Project deleted'
         else:
             return False
@@ -127,7 +143,16 @@ class AutotestDaemon(dbus.service.Object):
             in_signature='s')
     def dbus_info(self, project):
         """Info method called via dbus"""
-        return 'ok'
+        res = self.notify_process.get_project_by_name(project)
+        if not res:
+            return False
+
+        project = res[0]
+        return {'name': project.name,
+                'code_dir': project.code_dir,
+                'test_dir': project.test_dir,
+                'code_count': str(project.code_count()),
+                'test_count': str(project.test_count())}
 
     @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client')
     def dbus_list(self):
@@ -173,9 +198,6 @@ class AutotestDaemon(dbus.service.Object):
         session.delete(project)
         session.commit()
 
-        if pynotify.init('AutotestDaemon'):
-            pynotify.Notification('Project deleted  \"{0}\"'.format(project.name), 'Success!', 'face-smile').show()
-
         return True
 
     def new_project(self, project_name, code_dir, tests_dir):
@@ -187,9 +209,6 @@ class AutotestDaemon(dbus.service.Object):
             session.commit()
 
             self.watch_project(p)
-
-            if pynotify.init('AutotestDaemon'):
-                pynotify.Notification('New project  \"{0}\"'.format(project_name), 'Success!', 'face-smile').show()
 
             return p
 
