@@ -16,13 +16,33 @@ import gtk
 import gobject
 import dbus
 import dbus.service
+from daemon import Daemon
 from dbus.mainloop.glib import DBusGMainLoop
+from datetime import datetime
 
 from models import *
 
 
 # Inits gtk threads to use inotify and dbus together
 gobject.threads_init()
+
+
+class DaemonContext(Daemon):
+    def __init__(self, pidfile):
+        Daemon.__init__(self, pidfile)
+
+    def run(self):
+        f = open('/tmp/5', 'a')
+        f.write('daemon!\n')
+        DBusGMainLoop(set_as_default=True)
+        f.write('1\n')
+        try:
+            d = AutotestDaemon()
+        except Exception as e:
+            f.write(e.msg + '\n')
+        f.write('2\n')
+        f.close()
+        gtk.main()
 
 
 class FoundException(Exception):
