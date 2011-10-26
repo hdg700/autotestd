@@ -1,3 +1,4 @@
+#!/usr/bin/python2.6
 # -*- coding: utf-8 -*-
 
 """
@@ -8,6 +9,7 @@ __author__ = 'Danilenko Alexander'
 __email__ = 'hdg700@gmail.com'
 
 
+import threading
 import sqlalchemy.orm.exc
 import pyinotify
 import pynotify
@@ -21,10 +23,6 @@ from dbus.mainloop.glib import DBusGMainLoop
 from datetime import datetime
 
 from models import *
-
-
-# Inits gtk threads to use inotify and dbus together
-gobject.threads_init()
 
 
 class DaemonContext(Daemon):
@@ -234,19 +232,19 @@ class AutotestDaemon(dbus.service.Object):
             return False
 
     def notify_loop(self):
+        #while self.notify_loop_active:
         while True:
-            try:
-#                self.notifier.process_events()
-#                if self.notifier.check_events():
-#                    self.notifier.read_events()
-                pass
-            except KeyboardInterrupt:
-                self.notifier.stop()
-                break
+            print 'th 1'
+            self.notifier.process_events()
+            print 'th 2'
+            if self.notifier.check_events():
+                print 'th 3'
+                self.notifier.read_events()
 
 
 if __name__ == '__main__':
     DBusGMainLoop(set_as_default=True)
+    gtk.gdk.threads_init()
     d = AutotestDaemon()
     try:
         gtk.main()

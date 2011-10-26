@@ -7,7 +7,7 @@ Autotestd models definition module
 __author__ = 'Danilenko Alexander'
 __email__ = 'hdg700@gmail.com'
 
-import commands
+#import commands
 import re
 import os
 from sqlalchemy import *
@@ -15,6 +15,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relation
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm.exc import *
+from subprocess import Popen, PIPE
 
 
 engine = create_engine('sqlite:///autotestd.db')
@@ -63,7 +64,9 @@ class ADTest(Base):
 
     def get_status(self):
         """Run self test file"""
-        return commands.getstatusoutput('phpunit {0}'.format(self.filename))[0]
+        p = Popen(['phpunit', self.filename], shell=False, stdout=PIPE, stdin=PIPE, stderr=PIPE)
+        p.wait()
+        return p.returncode
 
 
 class ADProject(Base):
