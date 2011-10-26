@@ -9,38 +9,17 @@ __author__ = 'Danilenko Alexander'
 __email__ = 'hdg700@gmail.com'
 
 
-import threading
 import sqlalchemy.orm.exc
 import pyinotify
 import pynotify
 
 import gtk
-import gobject
 import dbus
 import dbus.service
-from daemon import Daemon
 from dbus.mainloop.glib import DBusGMainLoop
 from datetime import datetime
 
 from models import *
-
-
-class DaemonContext(Daemon):
-    def __init__(self, pidfile):
-        Daemon.__init__(self, pidfile)
-
-    def run(self):
-        f = open('/tmp/5', 'a')
-        f.write('daemon!\n')
-        DBusGMainLoop(set_as_default=True)
-        f.write('1\n')
-        try:
-            d = AutotestDaemon()
-        except Exception as e:
-            f.write(e.msg + '\n')
-        f.write('2\n')
-        f.close()
-        gtk.main()
 
 
 class FoundException(Exception):
@@ -84,7 +63,7 @@ class ADProcessEvent(pyinotify.ProcessEvent):
             if test_status == 0:
                 pynotify.Notification('Test  \"{0}\"'.format(test.classname), 'Success!', 'face-smile').show()
             else:
-                pynotify.Notification('Test  \"{0}\"'.format(test.classname), 'An error ocured...', 'face-sad').show()
+                pynotify.Notification('Test  \"{0}\"'.format(test.classname), 'Failed!', 'face-sad').show()
 
 
 class AutotestDaemon(dbus.service.Object):
@@ -108,7 +87,6 @@ class AutotestDaemon(dbus.service.Object):
     @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client',
             in_signature='s')
     def dbus_hello(self, s):
-        print s
         return [repr(i) for i in self.notify_process.projects.keys()]
 
     @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client',
@@ -232,13 +210,9 @@ class AutotestDaemon(dbus.service.Object):
             return False
 
     def notify_loop(self):
-        #while self.notify_loop_active:
         while True:
-            print 'th 1'
             self.notifier.process_events()
-            print 'th 2'
             if self.notifier.check_events():
-                print 'th 3'
                 self.notifier.read_events()
 
 
@@ -251,3 +225,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         d.notifier.stop()
         exit(1)
+

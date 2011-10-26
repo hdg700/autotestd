@@ -17,6 +17,9 @@ __email__ = 'hdg700@gmail.com'
 import sys
 import getopt
 import autotestd
+import daemon
+import lockfile
+from syslog import syslog
 
 
 class UsageError(Exception):
@@ -48,28 +51,26 @@ def main(argv=None):
             print e.msg
             print 'Use --help for more information'
 
-    context = autotestd.DaemonContext('/var/run/autotestd.pid')
-    context.start()
+    #context = autotestd.DaemonContext('/var/run/autotestd.pid')
+    #context.start()
 
     #d = autotestd.AutotestDaemon()
 
-#    context = daemon.DaemonContext(
-#            pidfile=lockfile.FileLock('/var/run/autotestd.pid'),
-#            #detach_process=False
-#            )
-#
-#    f = open('/tmp/1', 'a')
-#    context.files_preserve = [f]
-#    with context:
+    context = daemon.DaemonContext(
+            #pidfile=lockfile.FileLock('/var/run/autotestd.pid')
+            #detach_process=False
+            )
+
+    #f = open('/tmp/1', 'a')
+    #context.files_preserve = [f]
+    #f.write('before context\n')
+    with context:
+        autotestd.main()
 #        f.write('context\n')
 #        DBusGMainLoop(set_as_default=True)
 #        d = autotestd.AutotestDaemon()
 #        f.write('after daemon\n')
-#        while True:
-#            f.write('olo\n')
-#            while gtk.events_pending():
-#                f.write('gtk event!\n')
-#                gtk.main_iteration()
+#        gtk.main()
 
 
 if __name__ == '__main__':
