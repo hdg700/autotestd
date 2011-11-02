@@ -10,6 +10,8 @@ __email__ = 'hdg700@gmail.com'
 #import commands
 import re
 import os
+from syslog import syslog
+from config import *
 from sqlalchemy import *
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relation
@@ -64,9 +66,13 @@ class ADTest(Base):
 
     def get_status(self):
         """Run self test file"""
-        p = Popen(['phpunit', self.filename], shell=False, stdout=PIPE, stdin=PIPE, stderr=PIPE)
-        p.wait()
-        return p.returncode
+        try:
+            p = Popen(CONF_TEST_COMMAND.split() + [self.filename], shell=False, stdout=PIPE, stdin=PIPE, stderr=PIPE)
+            p.wait()
+            return p.returncode
+        except OSError:
+            syslog(u'Test command not valid! See /etc/autotestd/config.ini')
+        return 2
 
 
 class ADProject(Base):
@@ -112,14 +118,14 @@ class ADProject(Base):
     def search_code(self):
         """Search all code-files starting from search_dir"""
         session = Session()
-        regexp = re.compile(r'class (\w+)\b')
+        regexp = re.compile(CONF_CLASS_REGEXP)
         for f, c in self.find_classes(self.code_dir, regexp):
             session.add(ADCode(self, c, f))
 
     def search_tests(self):
         """Search all tests-files starting from search_dir"""
         session = Session()
-        regexp = re.compile(r'class (\w+)Test\b')
+        regexp = re.compile(CONF_TEST_REGEXP)
         for f, c in self.find_classes(self.test_dir, regexp):
             session.add(ADTest(self, c, f))
 

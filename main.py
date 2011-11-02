@@ -21,6 +21,9 @@ import daemon
 import lockfile
 from syslog import syslog
 
+import config
+
+exit(0)
 
 class UsageError(Exception):
     """Exception raised for printing help message"""
