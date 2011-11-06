@@ -1,0 +1,12 @@
+#!/bin/bash
+
+apt-get install python2.6 python-sqlalchemy sqlite3 inotify-tools python-pyinotify python-dbus
+
+mkdir /etc/autotestd
+cp config.ini /etc/autotestd/
+
+mkdir /usr/share/autotestd
+cp ./* /usr/share/autotestd/
+
+ln -s /usr/share/autotestd/autotestd.py /usr/local/bin/autotestd
+

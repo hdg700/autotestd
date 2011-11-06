@@ -20,7 +20,7 @@ from sqlalchemy.orm.exc import *
 from subprocess import Popen, PIPE
 
 
-engine = create_engine('sqlite:////home/hdg700/work/autotestd/autotestd.db')
+engine = create_engine('sqlite:////etc/autotestd/projects.db')
 #engine.echo = True
 Session = scoped_session(sessionmaker(bind=engine))
 Base = declarative_base(bind=engine)

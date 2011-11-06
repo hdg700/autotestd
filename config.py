@@ -10,8 +10,7 @@ CONF_TEST_COMMAND = u'phpunit'
 
 try:
     import ConfigParser
-    #cfilename = '/etc/autotestd/config.ini'
-    cfilename = 'config.ini'
+    cfilename = '/etc/autotestd/config.ini'
     conf = ConfigParser.ConfigParser()
     if os.path.exists(cfilename) and os.path.isfile(cfilename) or True:
         conf.read(cfilename)
