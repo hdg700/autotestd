@@ -7,7 +7,7 @@ cp config.ini /etc/autotestd/
 chmod a+w /etc/autotestd
 
 mkdir /usr/share/autotestd
-cp ./* /usr/share/autotestd/
+cp ./*.py /usr/share/autotestd/
 
 ln -s /usr/share/autotestd/autotestd.py /usr/local/bin/autotestd
 
