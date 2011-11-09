@@ -54,8 +54,15 @@ class ADProcessEvent(pyinotify.ProcessEvent):
 
     def run_test(self, project, filename):
         """Runs test for speciefed class from project"""
-        test = project.get_test_for_code(filename)
+        test = project.get_test_for_filename(filename)
         if not test:
+            if not project.has_filename(filename):
+                obj = project.add_file(filename)
+
+                if obj:
+                    if pynotify.init('AutotestDaemon'):
+                        pynotify.Notification('New file',
+                             'for class \"{0}\"'.format(obj.classname), 'face-smile').show()
             return False
 
         test_status = test.get_status()
@@ -77,7 +84,7 @@ class AutotestDaemon(dbus.service.Object):
         dbus.service.Object.__init__(self, bus_name, '/hdg700/autotestd/AutotestDaemon')
 
         self.watch_manager = pyinotify.WatchManager()
-        self.watch_mask = pyinotify.IN_MODIFY
+        self.watch_mask = pyinotify.IN_MODIFY | pyinotify.IN_CREATE
         self.notify_process = ADProcessEvent()
         self.notifier = pyinotify.ThreadedNotifier(self.watch_manager, self.notify_process)
 
@@ -120,7 +127,8 @@ class AutotestDaemon(dbus.service.Object):
     @dbus.service.method(dbus_interface='hdg700.autotestd.AutotestDaemon.client',
             in_signature='s')
     def dbus_delete(self, project):
-        """Delete method called via dbus"""
+        """Delete method called via dbus
+        'project' is a name of project to be delted"""
         res = self.notify_process.get_project_by_name(project)
         if not res:
             return 'No such project!'

@@ -21,7 +21,7 @@ from subprocess import Popen, PIPE
 
 
 engine = create_engine('sqlite:////etc/autotestd/projects.db')
-#engine.echo = True
+engine.echo = True
 Session = scoped_session(sessionmaker(bind=engine))
 Base = declarative_base(bind=engine)
 
@@ -43,6 +43,9 @@ class ADCode(Base):
         self.classname = unicode(classname)
         self.filename = unicode(filename)
 
+    def __repr__(self):
+        return u'<ADCode ({0})>'.format(self.classname)
+
 
 class ADTest(Base):
     """Autotest daemon Test model"""
@@ -62,7 +65,7 @@ class ADTest(Base):
         self.filename = unicode(filename)
 
     def __repr__(self):
-        return u'<ADTest ({0})'.format(self.classname)
+        return u'<ADTest ({0})>'.format(self.classname)
 
     def get_status(self):
         """Run self test file"""
@@ -129,7 +132,7 @@ class ADProject(Base):
         for f, c in self.find_classes(self.test_dir, regexp):
             session.add(ADTest(self, c, f))
 
-    def get_test_for_code(self, filename):
+    def get_test_for_filename(self, filename):
         """Return test for speciefed code/test filename"""
         session = Session()
         try:
@@ -138,6 +141,46 @@ class ADProject(Base):
                     .filter(or_(ADCode.filename == unicode(filename), ADTest.filename == unicode(filename))).first()
         except NoResultFound:
             return False
+
+    def has_filename(self, filename):
+        """Search ADCode with specified filename"""
+        session = Session()
+        try:
+            code = session.query(ADCode)\
+                    .filter(ADCode.filename == unicode(filename)).first()
+        except NoResultFound:
+            code = False
+        try:
+            test = session.query(ADTest)\
+                    .filter(ADTest.filename == unicode(filename)).first()
+        except NoResultFound:
+            test = False
+
+        return any((code, test))
+
+    def add_file(self, filename):
+        """Add new file in project"""
+        if self.code_dir in filename:
+            file_class = ADCode
+            regexp = re.compile(CONF_CLASS_REGEXP)
+        elif self.test_dir in filename:
+            file_class = ADTest
+            regexp = re.compile(CONF_TEST_REGEXP)
+        else:
+            return False
+
+        for line in open(filename).xreadlines():
+            m = regexp.match(line)
+            if m:
+                obj = file_class(self, m.group(1), filename)
+                session = Session.object_session(obj)
+                session.expunge_all()
+                #session.close()
+                session = Session()
+                session.add(obj)
+                session.commit()
+
+                return obj
 
     def code_count(self):
         """Returns code classes count"""
