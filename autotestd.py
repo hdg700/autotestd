@@ -52,17 +52,24 @@ class ADProcessEvent(pyinotify.ProcessEvent):
 
         return False
 
+
     def run_test(self, project, filename):
         """Runs test for speciefed class from project"""
-        test = project.get_test_for_filename(filename)
-        if not test:
-            if not project.has_filename(filename):
-                obj = project.add_file(filename)
+        rec = project.get_record_for_filename(filename)
+        if rec is False:
+            rec = project.add_file(filename)
+            if not rec:
+                return False
 
-                if obj:
-                    if pynotify.init('AutotestDaemon'):
-                        pynotify.Notification('New file',
-                             'for class \"{0}\"'.format(obj.classname), 'face-smile').show()
+        if rec is None:
+            return False
+
+        if type(rec) is ADCode:
+            test = rec.get_test()
+        else:
+            test = rec
+
+        if not test:
             return False
 
         test_status = test.get_status()
@@ -70,7 +77,9 @@ class ADProcessEvent(pyinotify.ProcessEvent):
             if test_status == 0:
                 pynotify.Notification('Test  \"{0}\"'.format(test.classname), 'Success!', 'face-smile').show()
             else:
-                pynotify.Notification('Test  \"{0}\"'.format(test.classname), 'Failed!', 'face-sad').show()
+                pynotify.Notification('Test  \"{0}\"'.format(test.classname), 'Failed!', 'face-angry').show()
+
+        return test_status
 
 
 class AutotestDaemon(dbus.service.Object):

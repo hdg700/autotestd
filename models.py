@@ -56,6 +56,13 @@ class ADCode(Base):
     def __repr__(self):
         return u'<ADCode ({0})>'.format(self.classname)
 
+    def get_test(self):
+        """Return test for self code"""
+        session = get_session()
+        return session.query(ADTest)\
+                .filter(ADTest.classname == self.classname)\
+                .first()
+
 
 class ADTest(Base):
     """Autotest daemon Test model"""
@@ -126,6 +133,9 @@ class ADProject(Base):
                     if m:
                         classes.append((f, m.group(1)))
                         break
+
+                    if 'class' in line:
+                        break
         return classes
 
     def search_code(self):
@@ -142,32 +152,55 @@ class ADProject(Base):
         for f, c in self.find_classes(self.test_dir, regexp):
             session.add(ADTest(self, c, f))
 
-    def get_test_for_filename(self, filename):
-        """Return test for speciefed code/test filename"""
-        session = get_session()
-        try:
-            return session.query(ADTest)\
-                    .join((ADCode, ADCode.classname == ADTest.classname))\
-                    .filter(or_(ADCode.filename == unicode(filename), ADTest.filename == unicode(filename)))\
-                    .first()
-        except NoResultFound:
+    def rescan_filename(self, record):
+        """Rescan file name, update or delete record
+        Return False, when record is already None"""
+        if not record:
             return False
 
-    def has_filename(self, filename):
-        """Search ADCode with specified filename"""
+        if type(record) is ADCode:
+            regexp = re.compile(CONF_CLASS_REGEXP)
+        else:
+            regexp = re.compile(CONF_TEST_REGEXP)
+
+        for line in open(record.filename).xreadlines():
+            m = regexp.match(line)
+            if m:
+                if m.group(1) == record.classname:
+                    # имя класса осталось прежним
+                    return record
+                else:
+                    # имя класса изменилось
+                    session = get_session()
+                    record.classname = unicode(m.group(1))
+                    session.add(record)
+                    session.commit()
+                    return record
+
+            if line.startswith('class'):
+                break
+
+        session = get_session()
+        session.delete(record)
+        session.commit()
+        return None
+
+    def get_record_for_filename(self, filename):
+        """Search ADCode of ADTest with specified filename"""
         session = get_session()
         try:
             code = session.query(ADCode)\
                     .filter(ADCode.filename == unicode(filename)).first()
-        except NoResultFound:
-            code = False
-        try:
+            if code:
+                return self.rescan_filename(code)
+
             test = session.query(ADTest)\
                     .filter(ADTest.filename == unicode(filename)).first()
-        except NoResultFound:
-            test = False
 
-        return any((code, test))
+            return self.rescan_filename(test)
+
+        except NoResultFound:
+            return False
 
     def add_file(self, filename):
         """Add new file in project"""
@@ -189,6 +222,11 @@ class ADProject(Base):
                 session.commit()
 
                 return obj
+
+            if 'class' in line:
+                break
+
+        return False
 
     def code_count(self):
         """Returns code classes count"""
