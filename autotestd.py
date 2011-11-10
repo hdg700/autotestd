@@ -193,7 +193,7 @@ class AutotestDaemon(dbus.service.Object):
             return False
 
         del self.notify_process.projects[project]
-        session = Session()
+        session = get_session()
         session.query(ADCode).filter(ADCode.project == project).delete()
         session.query(ADTest).filter(ADTest.project == project).delete()
         session.delete(project)
@@ -203,7 +203,7 @@ class AutotestDaemon(dbus.service.Object):
 
     def new_project(self, project_name, code_dir, tests_dir):
         """Add new project"""
-        session = Session()
+        session = get_session()
         try:
             p = ADProject(project_name, code_dir, tests_dir)
             session.add(p)

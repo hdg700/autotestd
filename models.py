@@ -20,11 +20,21 @@ from sqlalchemy.orm.exc import *
 from subprocess import Popen, PIPE
 
 
-engine = create_engine('sqlite:////etc/autotestd/projects.db')
-engine.echo = True
+engine = create_engine('sqlite:////etc/autotestd/projects.db',
+        connect_args={'check_same_thread':False})
+#engine.echo = True
 Session = scoped_session(sessionmaker(bind=engine))
+#Session = sessionmaker(bind=engine)
+#Session.extension = Session.extension.configure(save_on_init=False)
 Base = declarative_base(bind=engine)
 
+session = None
+def get_session():
+    global session
+    if not session:
+        session = Session()
+
+    return session
 
 class ADCode(Base):
     """Autotest daemon code model"""
@@ -120,31 +130,32 @@ class ADProject(Base):
 
     def search_code(self):
         """Search all code-files starting from search_dir"""
-        session = Session()
+        session = get_session()
         regexp = re.compile(CONF_CLASS_REGEXP)
         for f, c in self.find_classes(self.code_dir, regexp):
             session.add(ADCode(self, c, f))
 
     def search_tests(self):
         """Search all tests-files starting from search_dir"""
-        session = Session()
+        session = get_session()
         regexp = re.compile(CONF_TEST_REGEXP)
         for f, c in self.find_classes(self.test_dir, regexp):
             session.add(ADTest(self, c, f))
 
     def get_test_for_filename(self, filename):
         """Return test for speciefed code/test filename"""
-        session = Session()
+        session = get_session()
         try:
             return session.query(ADTest)\
                     .join((ADCode, ADCode.classname == ADTest.classname))\
-                    .filter(or_(ADCode.filename == unicode(filename), ADTest.filename == unicode(filename))).first()
+                    .filter(or_(ADCode.filename == unicode(filename), ADTest.filename == unicode(filename)))\
+                    .first()
         except NoResultFound:
             return False
 
     def has_filename(self, filename):
         """Search ADCode with specified filename"""
-        session = Session()
+        session = get_session()
         try:
             code = session.query(ADCode)\
                     .filter(ADCode.filename == unicode(filename)).first()
@@ -173,10 +184,7 @@ class ADProject(Base):
             m = regexp.match(line)
             if m:
                 obj = file_class(self, m.group(1), filename)
-                session = Session.object_session(obj)
-                session.expunge_all()
-                #session.close()
-                session = Session()
+                session = get_session()
                 session.add(obj)
                 session.commit()
 
@@ -184,7 +192,7 @@ class ADProject(Base):
 
     def code_count(self):
         """Returns code classes count"""
-        session = Session()
+        session = get_session()
         try:
             return session.query(func.count(ADCode.id)).filter(ADCode.project == self).first()[0]
         except NoResultFound:
@@ -192,7 +200,7 @@ class ADProject(Base):
 
     def test_count(self):
         """Returns test classes count"""
-        session = Session()
+        session = get_session()
         try:
             return session.query(func.count(ADTest.id)).filter(ADTest.project == self).first()[0]
         except NoResultFound:
@@ -201,7 +209,7 @@ class ADProject(Base):
     # Database queries methods
     @staticmethod
     def get_all():
-        session = Session()
+        session = get_session()
         try:
             return session.query(ADProject).all()
         except NoResultFound:
