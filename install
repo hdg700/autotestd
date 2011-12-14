@@ -1,6 +1,6 @@
 #!/bin/bash
 
-apt-get install python2.6 python-sqlalchemy sqlite3 inotify-tools python-pyinotify python-dbus libnotify-bin python-notify
+apt-get install python-sqlalchemy sqlite3 inotify-tools python-pyinotify python-dbus libnotify-bin python-notify
 
 mkdir /etc/autotestd
 cp config.ini /etc/autotestd/
